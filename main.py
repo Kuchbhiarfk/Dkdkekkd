@@ -1161,7 +1161,7 @@ async def text_handler(bot: Client, m: Message):
 
     
     
-          
+    raw_text2 = "720"      
     res = "1280x720"
     raw_text4 = "working_token"
     thumb = "/d"
