@@ -1142,16 +1142,8 @@ async def txt_handler(bot: Client, m: Message):
         await bot.send_message(channel_id, f"<b>-┈━═.•°✅ Completed ✅°•.═━┈-</b>\n<blockquote><b>🎯Batch Name : {b_name}</b></blockquote>\n<blockquote>🔗 Total URLs: {len(links)} \n┃   ┠🔴 Total Failed URLs: {failed_count}\n┃   ┠🟢 Total Successful URLs: {success_count}\n┃   ┃   ┠🎥 Total Video URLs: {video_count}\n┃   ┃   ┠📄 Total PDF URLs: {pdf_count}\n┃   ┃   ┠📸 Total IMAGE URLs: {img_count}</blockquote>\n")
         await bot.send_message(m.chat.id, f"<blockquote><b>✅ Your Task is completed, please check your Set Channel📱</b></blockquote>")
 
-import re
-import asyncio
-import os
-import requests
-from aiohttp import ClientSession
-from pyrogram import Client, filters
-from pyrogram.types import Message
 
-# Dictionary to store links for each user
-user_links = {}
+
 
 @bot.on_message(filters.command("op") & filters.private)
 async def op_command(bot: Client, m: Message):
