@@ -71,6 +71,8 @@ from db import db
 auto_flags = {}
 auto_clicked = False
 
+user_links = {}
+
 # Global variables
 watermark = "/d"  # Default value
 count = 0
@@ -1141,23 +1143,37 @@ async def txt_handler(bot: Client, m: Message):
         await bot.send_message(m.chat.id, f"<blockquote><b>✅ Your Task is completed, please check your Set Channel📱</b></blockquote>")
 
 
+@bot.on_message(filters.command("op") & filters.private)
+async def op_command(bot: Client, m: Message):
+    b_name = m.command[1] if len(m.command) > 1 else "Unknown"
+    user_links[m.from_user.id] = {"b_name": b_name, "links": []}
+    await m.reply_text(f"Please send your links for {b_name}. When done, use /doit to process them.")
+
 
 
 @bot.on_message(filters.text & filters.private)
 async def text_handler(bot: Client, m: Message):
     if m.from_user.is_bot:
         return
+
+    user_id = m.from_user.id
+    # Check if user has initiated /op command
+    if user_id not in user_links:
+        await m.reply_text("Please start by using /op {b_name} first.")
+        return
+
+    # Extract link from message
     links = m.text
-    path = None
     match = re.search(r'https?://\S+', links)
     if match:
         link = match.group(0)
+        # Store the link
+        user_links[user_id]["links"].append(link)
+        await m.reply_text(f"Link received: {link}\nSend more links or use /doit to process.")
     else:
         await m.reply_text("<pre><code>Invalid link format.</code></pre>")
-        return
-        
-    editable = await m.reply_text(f"<pre><code>**🔹Processing your link...\n🔁Please wait...⏳**</code></pre>")
     await m.delete()
+
 
     
     
@@ -1521,6 +1537,31 @@ async def text_handler(bot: Client, m: Message):
 
     except Exception as e:
         await m.reply_text(str(e))
+
+@bot.on_message(filters.command("doit") & filters.private)
+async def doit_command(bot: Client, m: Message):
+    user_id = m.from_user.id
+    if user_id not in user_links or not user_links[user_id]["links"]:
+        await m.reply_text("No links found. Please use /op {b_name} and send links first.")
+        return
+
+    b_name = user_links[user_id]["b_name"]
+    links = user_links[user_id]["links"]
+    editable = await m.reply_text(f"<pre><code>**🔹Starting processing for {b_name}...\n🔁Please wait...⏳**</code></pre>")
+
+    # Process each link with a 5-minute delay
+    for index, link in enumerate(links, 1):
+        await editable.edit(f"<pre><code>**🔹Processing link {index}/{len(links)}: {link}...\n🔁Please wait...⏳**</code></pre>")
+        # Your link processing logic here
+        # For demonstration, we'll just print the link
+        print(f"Processing link for {b_name}: {link}")
+        # Wait 5 minutes before processing the next link
+        if index < len(links):
+            await asyncio.sleep(300)  # 5 minutes = 300 seconds
+
+    await editable.edit(f"<pre><code>**✅All links for {b_name} processed successfully!**</code></pre>")
+    # Clear the user's links after processing
+    del user_links[user_id]
 
 # Keep Running 
 async def keep_alive(db):
