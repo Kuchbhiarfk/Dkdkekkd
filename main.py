@@ -1074,7 +1074,7 @@ async def txt_handler(bot: Client, m: Message):
                         continue
                     
 
-                elif 'sec-prod-mediacdn.pw.live' in url:
+                elif 'bhosdiwala' in url:
                     Show = f"<i><b>📥 Fast Video Downloading</b></i>\n<blockquote><b>{str(count).zfill(3)}) {name1}</b></blockquote>"
                     prog = await bot.send_message(channel_id, Show, disable_web_page_preview=True)
                     res_file = await helper.decrypt_and_merge_video(url, keys_string, path, name1, raw_text2)
@@ -1385,7 +1385,7 @@ async def text_handler(bot: Client, m: Message):
 
             try:
                 cc = f'**|🇮🇳| {cleaned_name1}\n\n😎 ℚ𝕦𝕒𝕝𝕚𝕥𝕪 ➠ {raw_text97}p\n\n🧿 𝐁𝐀𝐓𝐂𝐇 ➤ \n\nChapterId > {raw_text65}**'
-                    cc1 = f'**|🇮🇳| {cleaned_name1}\n\n🧿 𝐁𝐀𝐓𝐂𝐇 ➤ \n\nChapterId > {raw_text65}**'
+                cc1 = f'**|🇮🇳| {cleaned_name1}\n\n🧿 𝐁𝐀𝐓𝐂𝐇 ➤ \n\nChapterId > {raw_text65}**'
                   
                 if "drive" in url:
                     try:
