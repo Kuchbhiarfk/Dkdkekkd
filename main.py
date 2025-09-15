@@ -1177,7 +1177,7 @@ async def text_handler(bot: Client, m: Message):
                 url = Vxy
 
             # Title processing
-            title = link
+            title = links
             raw_text97 = ""
             name1 = ""
             raw_text65 = ""
