@@ -1142,14 +1142,22 @@ async def txt_handler(bot: Client, m: Message):
         await bot.send_message(channel_id, f"<b>-┈━═.•°✅ Completed ✅°•.═━┈-</b>\n<blockquote><b>🎯Batch Name : {b_name}</b></blockquote>\n<blockquote>🔗 Total URLs: {len(links)} \n┃   ┠🔴 Total Failed URLs: {failed_count}\n┃   ┠🟢 Total Successful URLs: {success_count}\n┃   ┃   ┠🎥 Total Video URLs: {video_count}\n┃   ┃   ┠📄 Total PDF URLs: {pdf_count}\n┃   ┃   ┠📸 Total IMAGE URLs: {img_count}</blockquote>\n")
         await bot.send_message(m.chat.id, f"<blockquote><b>✅ Your Task is completed, please check your Set Channel📱</b></blockquote>")
 
+import re
+import asyncio
+import os
+import requests
+from aiohttp import ClientSession
+from pyrogram import Client, filters
+from pyrogram.types import Message
+
+# Dictionary to store links for each user
+user_links = {}
 
 @bot.on_message(filters.command("op") & filters.private)
 async def op_command(bot: Client, m: Message):
     b_name = m.command[1] if len(m.command) > 1 else "Unknown"
     user_links[m.from_user.id] = {"b_name": b_name, "links": []}
     await m.reply_text(f"Please send your links for {b_name}. When done, use /doit to process them.")
-
-
 
 @bot.on_message(filters.text & filters.private)
 async def text_handler(bot: Client, m: Message):
@@ -1162,69 +1170,103 @@ async def text_handler(bot: Client, m: Message):
         await m.reply_text("Please start by using /op {b_name} first.")
         return
 
-    # Extract link from message
-    links = m.text
-    match = re.search(r'https?://\S+', links)
+    # Extract link and title from message
+    message_text = m.text
+    match = re.search(r'(https?://\S+)', message_text)
     if match:
         link = match.group(0)
-        # Store the link
-        user_links[user_id]["links"].append(link)
+        # Store the entire message (title + URL) to preserve title, quality, chapter_id
+        user_links[user_id]["links"].append(message_text)
         await m.reply_text(f"Link received: {link}\nSend more links or use /doit to process.")
     else:
         await m.reply_text("<pre><code>Invalid link format.</code></pre>")
     await m.delete()
 
+@bot.on_message(filters.command("doit") & filters.private)
+async def doit_command(bot: Client, m: Message):
+    user_id = m.from_user.id
+    if user_id not in user_links or not user_links[user_id]["links"]:
+        await m.reply_text("No links found. Please use /op {b_name} and send links first.")
+        return
 
-    
-    
-    raw_text2 = "720"      
+    b_name = user_links[user_id]["b_name"]
+    links = user_links[user_id]["links"]
+    editable = await m.reply_text(f"<pre><code>**🔹Starting processing for {b_name}...\n🔁Please wait...⏳**</code></pre>")
+
+    # Process each link with a 5-minute delay
+    raw_text2 = "720"
     res = "1280x720"
-    raw_text4 = "working_token"
+    raw_text4 = "working_token"  # Replace with actual token
     thumb = "/d"
-    count =0
-    arg =1
+    count = 0
+    arg = 1
     channel_id = m.chat.id
-    try:
-            Vxy = link.replace("file/d/","uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing","")
+    CREDIT = "YourCreditHere"  # Replace with your credit
+    watermark = ""  # Define watermark if needed
+    cptoken = ""  # Replace with actual Classplus token if needed
+
+    for index, link_text in enumerate(links, 1):
+        await editable.edit(f"<pre><code>**🔹Processing link {index}/{len(links)}: {link_text.split('🌐')[-1].strip()}...\n🔁Please wait...⏳**</code></pre>")
+        
+        try:
+            # Extract URL from the message
+            match = re.search(r'(https?://\S+)', link_text)
+            if not match:
+                await editable.edit(f"<pre><code>**⚠️Invalid link format for link {index}/{len(links)}. Skipping...**</code></pre>")
+                continue
+            url = match.group(0)
+
+            # Title processing
+            title = link_text
+            raw_text97 = ""
+            name1 = ""
+            raw_text65 = ""
+
+            if "🌚" in title and "💀" in title:
+                try:
+                    parts = title.split("🌚")
+                    if len(parts) >= 3:
+                        raw_text97 = parts[1].strip()  # Quality
+                        remaining = parts[2].split("💀")
+                        if len(remaining) >= 3:
+                            name1 = remaining[0].strip()  # Title
+                            raw_text65 = remaining[1].strip()  # Chapter ID
+                        else:
+                            name1 = remaining[0].strip() if remaining else title.strip()
+                except IndexError:
+                    name1 = title.strip()
+            else:
+                name1 = title.strip()
+
+            cleaned_name1 = name1.replace("(", "[").replace(")", "]").replace("_", "").replace("\t", "").replace(":", "").replace("/", "").replace("+", "").replace("#", "").replace("|", "").replace("@", "").replace("*", "").replace(".", "").replace("https", "").replace("http", "").strip()
+            name = f'[𝗛𝗔𝗖𝗞𝗛𝗘𝗜𝗦𝗧😈]{cleaned_name1[:60]}'
+
             # URL processing
+            Vxy = url.replace("file/d/","uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing","")
             if not Vxy.startswith("https://"):
                 url = "https://" + Vxy
             else:
                 url = Vxy
 
-            # Title processing
-            title = links
-            raw_text97 = ""
-            name1 = ""
-            raw_text65 = ""
-
-            # Check for both delimiters and the correct format
-            if "🌚" in title and "💀" in title:
-                try:
-                    # Split on 🌚 to isolate raw_text97 and the rest
-                    parts = title.split("🌚")
-                    if len(parts) >= 3:
-                        raw_text97 = parts[1].strip()  # Extract raw_text97
-                        # Split the remaining part on 💀 to get name1 and raw_text65
-                        remaining = parts[2].split("💀")
-                        if len(remaining) >= 3:
-                            name1 = remaining[0].strip()  # Extract name1
-                            raw_text65 = remaining[1].strip()  # Extract raw_text65
-                        else:
-                            name1 = remaining[0].strip() if remaining else title.strip()
-                except IndexError:
-                    # Fallback in case of malformed title
-                    name1 = title.strip()
-            else:
-                # Fallback if delimiters are missing
-                name1 = title.strip()
-
-            cleaned_name1 = name1.replace("(", "[").replace(")", "]").replace("_", "").replace("\t", "").replace(":", "").replace("/", "").replace("+", "").replace("#", "").replace("|", "").replace("@", "").replace("*", "").replace(".", "").replace("https", "").replace("http", "").strip()
-            name = f'[𝗛𝗔𝗖𝗞𝗛𝗘𝗜𝗦𝗧😈]{cleaned_name1[:60]}'
-            
+            # Your existing URL processing logic
             if "visionias" in url:
                 async with ClientSession() as session:
-                    async with session.get(url, headers={'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language': 'en-US,en;q=0.9', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive', 'Pragma': 'no-cache', 'Referer': 'http://www.visionias.in/', 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'cross-site', 'Upgrade-Insecure-Requests': '1', 'User-Agent': 'Mozilla/5.0 (Linux; Android 12; RMX2121) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36', 'sec-ch-ua': '"Chromium";v="107", "Not=A?Brand";v="24"', 'sec-ch-ua-mobile': '?1', 'sec-ch-ua-platform': '"Android"',}) as resp:
+                    async with session.get(url, headers={
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Cache-Control': 'no-cache',
+                        'Connection': 'keep-alive',
+                        'Pragma': 'no-cache',
+                        'Referer': 'http://www.visionias.in/',
+                        'Sec-Fetch-Dest': 'iframe',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'cross-site',
+                        'Upgrade-Insecure-Requests': '1',
+                        'User-Agent': 'Mozilla/5.0 (Linux; Android 12; RMX2121) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
+                        'sec-ch-ua': '"Chromium";v="107", "Not=A?Brand";v="24"',
+                        'sec-ch-ua-mobile': '?1',
+                        'sec-ch-ua-platform': '"Android"',
+                    }) as resp:
                         text = await resp.text()
                         url = re.search(r"(https://.*?playlist.m3u8.*?)\"", text).group(1)
 
@@ -1234,36 +1276,28 @@ async def text_handler(bot: Client, m: Message):
             elif "https://cpvod.testbook.com/" in url or "classplusapp.com/drm/" in url:
                 url = url.replace("https://cpvod.testbook.com/","https://media-cdn.classplusapp.com/drm/")
                 url = f"https://covercel.vercel.app/extract_keys?url={url}@bots_updatee&user_id=7793257011"
-                mpd, keys = helper.get_mps_and_keys(url)
+                mpd, keys = helper.get_mps_and_keys(url)  # Ensure helper is defined
                 url = mpd
                 keys_string = " ".join([f"--key {key}" for key in keys])
 
             elif "https://static-trans-v1.classx.co.in" in url or "https://static-trans-v2.classx.co.in" in url:
                 base_with_params, signature = url.split("*")
-
                 base_clean = base_with_params.split(".mkv")[0] + ".mkv"
-
                 if "static-trans-v1.classx.co.in" in url:
                     base_clean = base_clean.replace("https://static-trans-v1.classx.co.in", "https://appx-transcoded-videos-mcdn.akamai.net.in")
                 elif "static-trans-v2.classx.co.in" in url:
                     base_clean = base_clean.replace("https://static-trans-v2.classx.co.in", "https://transcoded-videos-v2.classx.co.in")
-
                 url = f"{base_clean}*{signature}"
-            
+
             elif "https://static-rec.classx.co.in/drm/" in url:
                 base_with_params, signature = url.split("*")
-
                 base_clean = base_with_params.split("?")[0]
-
                 base_clean = base_clean.replace("https://static-rec.classx.co.in", "https://appx-recordings-mcdn.akamai.net.in")
-
                 url = f"{base_clean}*{signature}"
 
             elif "https://static-wsb.classx.co.in/" in url:
                 clean_url = url.split("?")[0]
-
                 clean_url = clean_url.replace("https://static-wsb.classx.co.in", "https://appx-wsb-gcp-mcdn.akamai.net.in")
-
                 url = clean_url
 
             elif "https://static-db.classx.co.in/" in url:
@@ -1275,7 +1309,6 @@ async def text_handler(bot: Client, m: Message):
                 else:
                     base_url = url.split("?")[0]
                     url = base_url.replace("https://static-db.classx.co.in", "https://appxcontent.kaxa.in")
-
 
             elif "https://static-db-v2.classx.co.in/" in url:
                 if "*" in url:
@@ -1290,49 +1323,47 @@ async def text_handler(bot: Client, m: Message):
             elif "classplusapp" in url:
                 signed_api = f"https://covercel.vercel.app/extract_keys?url={url}@bots_updatee&user_id=7793257011"
                 response = requests.get(signed_api, timeout=20)
-                url = response.text.strip()
-                url = response.json()['url']  
+                data = response.json()
+                url = data['url']
 
-            elif "tencdn.classplusapp" in url:
-                headers = {'host': 'api.classplusapp.com', 'x-access-token': f'{cptoken}', 'accept-language': 'EN', 'api-version': '18', 'app-version': '1.4.73.2', 'build-number': '35', 'connection': 'Keep-Alive', 'content-type': 'application/json', 'device-details': 'Xiaomi_Redmi 7_SDK-32', 'device-id': 'c28d3cb16bbdac01', 'region': 'IN', 'user-agent': 'Mobile-Android', 'webengage-luid': '00000187-6fe4-5d41-a530-26186858be4c', 'accept-encoding': 'gzip'}
+            elif "tencdn.classplusapp" in url or "videos.classplusapp" in url or "media-cdn.classplusapp.com" in url or "media-cdn-alisg.classplusapp.com" in url or "media-cdn-a.classplusapp.com" in url:
+                headers = {
+                    'host': 'api.classplusapp.com',
+                    'x-access-token': f'{cptoken}',
+                    'accept-language': 'EN',
+                    'api-version': '18',
+                    'app-version': '1.4.73.2',
+                    'build-number': '35',
+                    'connection': 'Keep-Alive',
+                    'content-type': 'application/json',
+                    'device-details': 'Xiaomi_Redmi 7_SDK-32',
+                    'device-id': 'c28d3cb16bbdac01',
+                    'region': 'IN',
+                    'user-agent': 'Mobile-Android',
+                    'webengage-luid': '00000187-6fe4-5d41-a530-26186858be4c',
+                    'accept-encoding': 'gzip'
+                }
                 params = {"url": f"{url}"}
                 response = requests.get('https://api.classplusapp.com/cams/uploader/video/jw-signed-url', headers=headers, params=params)
-                url = response.json()['url']  
-
-            elif 'videos.classplusapp' in url:
-                url = requests.get(f'https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={url}', headers={'x-access-token': f'{cptoken}'}).json()['url']
-            
-            elif 'media-cdn.classplusapp.com' in url or 'media-cdn-alisg.classplusapp.com' in url or 'media-cdn-a.classplusapp.com' in url: 
-                headers = {'host': 'api.classplusapp.com', 'x-access-token': f'{cptoken}', 'accept-language': 'EN', 'api-version': '18', 'app-version': '1.4.73.2', 'build-number': '35', 'connection': 'Keep-Alive', 'content-type': 'application/json', 'device-details': 'Xiaomi_Redmi 7_SDK-32', 'device-id': 'c28d3cb16bbdac01', 'region': 'IN', 'user-agent': 'Mobile-Android', 'webengage-luid': '00000187-6fe4-5d41-a530-26186858be4c', 'accept-encoding': 'gzip'}
-                params = {"url": f"{url}"}
-                response = requests.get('https://api.classplusapp.com/cams/uploader/video/jw-signed-url', headers=headers, params=params)
-                url   = response.json()['url']
+                url = response.json()['url']
 
             elif "studystark" in url:
                 try:
                     response = requests.get(url)
-                    response.raise_for_status()  # Raises an error for bad status codes
+                    response.raise_for_status()
                     data = response.json()
                     video_url = data.get("video_url", "")
-                    print(f"Original video_url: {video_url}")  # Debugging
-
                     if video_url:
                         if video_url.startswith("https://sec"):
-                            # ✅ Logic for sec links
                             base_path = video_url.split('?')[0].replace('master.mpd', '')
                             query_params = video_url.split('?')[1] if '?' in video_url else ''
-
-                            # Construct new m3u8 URL
                             new_url = f"{base_path}hls/{raw_text97}/main.m3u8" + (f"?{query_params}" if query_params else '')
                             new_url = new_url.replace(
                                 "https://sec-prod-mediacdn.pw.live",
                                 "https://anonymouspwplayer-0e5a3f512dec.herokuapp.com/sec-prod-mediacdn.pw.live"
                             )
-
-                            # Prepare API request
                             api_url = "https://api-accesstoken.vercel.app"
                             headers = {"Content-Type": "application/json"}
-
                             try:
                                 resp = requests.get(api_url, headers=headers, timeout=10)
                                 if resp.status_code == 200:
@@ -1340,49 +1371,32 @@ async def text_handler(bot: Client, m: Message):
                                     if 'access_token' in response_data:
                                         token = response_data['access_token']
                                         url = f"{new_url}&token={token}"
-                                        print(f"Generated new_url with API token: {url}")
                                     else:
                                         url = f"{new_url}&token={raw_text4}"
-                                        print(f"No access_token in API response, using fallback token: {url}")
                                 else:
-                                    url = f"{new_url}&token={raw_textx}"
-                                    print(f"API request failed ({resp.status_code}), using fallback token: {url}")
-                            except Exception as e:
-                                url = f"{new_url}&token={raw_textx}"
-                                print(f"Error fetching API token ({e}), using fallback token: {url}")
-
+                                    url = f"{new_url}&token={raw_text4}"
+                            except Exception:
+                                url = f"{new_url}&token={raw_text4}"
                         elif video_url.startswith("https://next"):
-                            # ✅ Logic for next links
                             if video_url.endswith("master.mpd"):
                                 url = video_url.replace("master.mpd", f"hls/{raw_text97}/main.m3u8")
                             else:
-                                base_url = video_url.rsplit("/", 1)[0]  # Remove any trailing segment
+                                base_url = video_url.rsplit("/", 1)[0]
                                 url = f"{base_url}/hls/{raw_text97}/main.m3u8"
-                            print(f"Final URL: {url}")
-
                         else:
-                            print("Unsupported video_url format")
                             url = ""
-
                     else:
-                        print("Error: video_url is empty")
                         url = ""
+                except (requests.RequestException, ValueError):
+                    url = ""
 
-                except requests.RequestException as e:
-                    print(f"Error fetching URL: {e}")
-                    url = ""  # Fallback to empty string
-                except ValueError as e:
-                    print(f"Error parsing JSON: {e}")
-                    url = ""  # Fallback to empty string
-
-                           
             elif "d1d34p8vz63oiq" in url or "sec1.pw.live" in url:
                 url = f"https://anonymouspwplayer-b99f57957198.herokuapp.com/pw?url={url}?token={raw_text4}"
 
             if ".pdf*" in url:
                 url = f"https://dragoapi.vercel.app/pdf/{url}"
-            
-            elif 'encrypted.m' in url:
+
+            if 'encrypted.m' in url:
                 appxkey = url.split('*')[1]
                 url = url.split('*')[0]
 
@@ -1392,176 +1406,123 @@ async def text_handler(bot: Client, m: Message):
                 ytf = f"bestvideo[height<={raw_text2}]+bestaudio/best[height<={raw_text2}]"
             else:
                 ytf = f"b[height<={raw_text2}]/bv[height<={raw_text2}]+ba/b/bv+ba"
-           
+
             if "jw-prod" in url:
                 cmd = f'yt-dlp -o "{name}.mp4" "{url}"'
             elif "webvideos.classplusapp." in url:
-               cmd = f'yt-dlp --add-header "referer:https://web.classplusapp.com/" --add-header "x-cdn-tag:empty" -f "{ytf}" "{url}" -o "{name}.mp4"'
+                cmd = f'yt-dlp --add-header "referer:https://web.classplusapp.com/" --add-header "x-cdn-tag:empty" -f "{ytf}" "{url}" -o "{name}.mp4"'
             elif "youtube.com" in url or "youtu.be" in url:
                 cmd = f'yt-dlp --cookies youtube_cookies.txt -f "{ytf}" "{url}" -o "{name}".mp4'
             else:
                 cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.mp4"'
 
+            # Download and send logic
             try:
-                cc = f'**|🇮🇳| {cleaned_name1}\n\n😎 ℚ𝕦𝕒𝕝𝕚𝕥𝕪 ➠ {raw_text97}p\n\n🧿 𝐁𝐀𝐓𝐂𝐇 ➤ \n\nChapterId > {raw_text65}**'
-                cc1 = f'**|🇮🇳| {cleaned_name1}\n\n🧿 𝐁𝐀𝐓𝐂𝐇 ➤ \n\nChapterId > {raw_text65}**'
-                
+                cc = f'**|🇮🇳| {cleaned_name1}\n\n😎 ℚ𝕦𝕒𝕝𝕚𝕥𝕪 ➠ {raw_text97}p\n\n🧿 𝐁𝐀𝐓𝐂𝐇 ➤ {b_name}\n\nChapterId > {raw_text65}**'
+                cc1 = f'**|🇮🇳| {cleaned_name1}\n\n🧿 𝐁𝐀𝐓𝐂𝐇 ➤ {b_name}\n\nChapterId > {raw_text65}**'
+
                 if "drive" in url:
-                    try:
-                        ka = await helper.download(url, name)
-                        copy = await bot.send_document(chat_id=m.chat.id,document=ka, caption=cc1)
-                        count+=1
-                        os.remove(ka)
-                    except FloodWait as e:
-                        await m.reply_text(str(e))
-                        time.sleep(e.x)
-                        pass
+                    ka = await helper.download(url, name)  # Ensure helper.download is defined
+                    copy = await bot.send_document(chat_id=m.chat.id, document=ka, caption=cc1)
+                    count += 1
+                    os.remove(ka)
 
                 elif ".pdf" in url:
                     if "cwmediabkt99" in url:
-                        max_retries = 15  # Define the maximum number of retries
-                        retry_delay = 4  # Delay between retries in seconds
-                        success = False  # To track whether the download was successful
-                        failure_msgs = []  # To keep track of failure messages
-                        
+                        max_retries = 15
+                        retry_delay = 4
+                        success = False
+                        failure_msgs = []
                         for attempt in range(max_retries):
                             try:
                                 await asyncio.sleep(retry_delay)
                                 url = url.replace(" ", "%20")
                                 scraper = cloudscraper.create_scraper()
                                 response = scraper.get(url)
-
                                 if response.status_code == 200:
                                     with open(f'{name}.pdf', 'wb') as file:
                                         file.write(response.content)
-                                    await asyncio.sleep(retry_delay)  # Optional, to prevent spamming
                                     copy = await bot.send_document(chat_id=m.chat.id, document=f'{name}.pdf', caption=cc1)
                                     os.remove(f'{name}.pdf')
                                     success = True
-                                    break  # Exit the retry loop if successful
+                                    break
                                 else:
                                     failure_msg = await m.reply_text(f"Attempt {attempt + 1}/{max_retries} failed: {response.status_code} {response.reason}")
                                     failure_msgs.append(failure_msg)
-                                    
                             except Exception as e:
                                 failure_msg = await m.reply_text(f"Attempt {attempt + 1}/{max_retries} failed: {str(e)}")
                                 failure_msgs.append(failure_msg)
                                 await asyncio.sleep(retry_delay)
-                                continue 
-
-                        # Delete all failure messages if the PDF is successfully downloaded
                         for msg in failure_msgs:
                             await msg.delete()
-                            
                         if not success:
-                            # Send the final failure message if all retries fail
-                            await m.reply_text(f"Failed to download PDF after {max_retries} attempts.\n⚠️**Downloading Failed**⚠️\n**Name** =>> {str(count).zfill(3)} {name1}\n**Url** =>> {link0}", disable_web_page_preview)
-                            
+                            await m.reply_text(f"Failed to download PDF after {max_retries} attempts.\n⚠️**Downloading Failed**⚠️\n**Name** =>> {str(count).zfill(3)} {name1}\n**Url** =>> {url}")
                     else:
-                        try:
-                            cmd = f'yt-dlp -o "{name}.pdf" "{url}"'
-                            download_cmd = f"{cmd} -R 25 --fragment-retries 25"
-                            os.system(download_cmd)
-                            copy = await bot.send_document(chat_id=m.chat.id, document=f'{name}.pdf', caption=cc1)
-                            os.remove(f'{name}.pdf')
-                        except FloodWait as e:
-                            await m.reply_text(str(e))
-                            time.sleep(e.x)
-                            pass   
+                        cmd = f'yt-dlp -o "{name}.pdf" "{url}"'
+                        download_cmd = f"{cmd} -R 25 --fragment-retries 25"
+                        os.system(download_cmd)
+                        copy = await bot.send_document(chat_id=m.chat.id, document=f'{name}.pdf', caption=cc1)
+                        os.remove(f'{name}.pdf')
 
                 elif any(ext in url for ext in [".mp3", ".wav", ".m4a"]):
-                    try:
-                        ext = url.split('.')[-1]
-                        cmd = f'yt-dlp -x --audio-format {ext} -o "{name}.{ext}" "{url}"'
-                        download_cmd = f"{cmd} -R 25 --fragment-retries 25"
-                        os.system(download_cmd)
-                        await bot.send_document(chat_id=m.chat.id, document=f'{name}.{ext}', caption=cc1)
-                        os.remove(f'{name}.{ext}')
-                    except FloodWait as e:
-                        await m.reply_text(str(e))
-                        time.sleep(e.x)
-                        pass
+                    ext = url.split('.')[-1]
+                    cmd = f'yt-dlp -x --audio-format {ext} -o "{name}.{ext}" "{url}"'
+                    download_cmd = f"{cmd} -R 25 --fragment-retries 25"
+                    os.system(download_cmd)
+                    await bot.send_document(chat_id=m.chat.id, document=f'{name}.{ext}', caption=cc1)
+                    os.remove(f'{name}.{ext}')
 
                 elif any(ext in url for ext in [".jpg", ".jpeg", ".png"]):
-                    try:
-                        ext = url.split('.')[-1]
-                        cmd = f'yt-dlp -o "{name}.{ext}" "{url}"'
-                        download_cmd = f"{cmd} -R 25 --fragment-retries 25"
-                        os.system(download_cmd)
-                        copy = await bot.send_photo(chat_id=m.chat.id, photo=f'{name}.{ext}', caption=cc1)
-                        count += 1
-                        os.remove(f'{name}.{ext}')
-                    except FloodWait as e:
-                        await m.reply_text(str(e))
-                        time.sleep(e.x)
-                        pass
-                                
-                elif 'encrypted.m' in url:    
-                    Show = f"**⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ Sᴛᴀʀᴛᴇᴅ...⏳**\n" \
-                           f"🔗𝐋𝐢𝐧𝐤 » {url}\n" \
-                           f"✦𝐁𝐨𝐭 𝐌𝐚𝐝𝐞 𝐁𝐲 ✦ {CREDIT}"
+                    ext = url.split('.')[-1]
+                    cmd = f'yt-dlp -o "{name}.{ext}" "{url}"'
+                    download_cmd = f"{cmd} -R 25 --fragment-retries 25"
+                    os.system(download_cmd)
+                    copy = await bot.send_photo(chat_id=m.chat.id, photo=f'{name}.{ext}', caption=cc1)
+                    count += 1
+                    os.remove(f'{name}.{ext}')
+
+                elif 'encrypted.m' in url:
+                    Show = f"**⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ Sᴛᴀʀᴛᴇᴅ...⏳**\n🔗𝐋𝐢𝐧𝐤 » {url}\n✦𝐁𝐨𝐭 𝐌𝐚𝐝𝐞 𝐁𝐲 ✦ {CREDIT}"
                     prog = await m.reply_text(Show, disable_web_page_preview=True)
-                    res_file = await helper.download_and_decrypt_video(url, cmd, name, appxkey)  
-                    filename = res_file  
-                    await prog.delete(True)  
+                    res_file = await helper.download_and_decrypt_video(url, cmd, name, appxkey)
+                    filename = res_file
+                    await prog.delete(True)
                     await helper.send_vid(bot, m, cc, filename, thumb, name, prog, channel_id, watermark=watermark)
-                    await asyncio.sleep(1)  
-                    pass
+                    await asyncio.sleep(1)
 
                 elif 'drmcdni' in url or 'drm/wv' in url:
-                    Show = f"**⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ Sᴛᴀʀᴛᴇᴅ...⏳**\n" \
-                           f"🖇️ LNK » {url}\n" \
-                           f"🎓 Uploaded By » {CREDIT}"
+                    Show = f"**⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ Sᴛᴀʀᴛᴇᴅ...⏳**\n🖇️ LNK » {url}\n🎓 Uploaded By » {CREDIT}"
                     prog = await m.reply_text(Show, disable_web_page_preview=True)
                     res_file = await helper.decrypt_and_merge_video(mpd, keys_string, path, name, raw_text2)
                     filename = res_file
                     await prog.delete(True)
                     await helper.send_vid(bot, m, cc, filename, thumb, name, prog, channel_id, watermark=watermark)
                     await asyncio.sleep(1)
-                    pass
 
                 else:
-                    Show = f"**🚀Dᴏᴡɴʟᴏᴀᴅɪɴɢ Sᴛᴀʀᴛᴇᴅ **\n" \
-                           f"🔗 𝐋𝐢𝐧𝐤 » {url}\n" \
-                           f"✦ Uploader {CREDIT}"
+                    Show = f"**🚀Dᴏᴡɴʟᴏᴀᴅɪɴɢ Sᴛᴀʀᴛᴇᴅ **\n🔗 𝐋𝐢𝐧𝐤 » {url}\n✦ Uploader {CREDIT}"
                     prog = await m.reply_text(Show, disable_web_page_preview=True)
                     res_file = await helper.download_video(url, cmd, name)
                     filename = res_file
                     await prog.delete(True)
                     await helper.send_vid(bot, m, cc, filename, thumb, name, prog, channel_id, watermark=watermark)
-                    time.sleep(1)
-                
+                    await asyncio.sleep(1)
+
             except Exception as e:
-                    await m.reply_text(f"⚠️𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐢𝐧𝐠 𝐈𝐧𝐭𝐞𝐫𝐮𝐩𝐭𝐞𝐝\n\n🔗𝐋𝐢𝐧𝐤 » `{link}`\n\n<blockquote><b><i>⚠️Failed Reason »**__\n{str(e)}</i></b></blockquote>")
-                    pass
+                await m.reply_text(f"⚠️𝐃𝐨𝐰𝐧ʟ𝐨𝐚𝐝𝐢𝐧𝐠 𝐈𝐧𝐭𝐞𝐫𝐮𝐩𝐭𝐞𝐝\n\n🔗𝐋𝐢𝐧𝐤 » `{url}`\n\n<blockquote><b><i>⚠️Failed Reason »**__\n{str(e)}</i></b></blockquote>")
 
-    except Exception as e:
-        await m.reply_text(str(e))
+            # Wait 5 minutes before processing the next link
+            if index < len(links):
+                await asyncio.sleep(300)  # 5 minutes = 300 seconds
 
-@bot.on_message(filters.command("doit") & filters.private)
-async def doit_command(bot: Client, m: Message):
-    user_id = m.from_user.id
-    if user_id not in user_links or not user_links[user_id]["links"]:
-        await m.reply_text("No links found. Please use /op {b_name} and send links first.")
-        return
-
-    b_name = user_links[user_id]["b_name"]
-    links = user_links[user_id]["links"]
-    editable = await m.reply_text(f"<pre><code>**🔹Starting processing for {b_name}...\n🔁Please wait...⏳**</code></pre>")
-
-    # Process each link with a 5-minute delay
-    for index, link in enumerate(links, 1):
-        await editable.edit(f"<pre><code>**🔹Processing link {index}/{len(links)}: {link}...\n🔁Please wait...⏳**</code></pre>")
-        # Your link processing logic here
-        # For demonstration, we'll just print the link
-        print(f"Processing link for {b_name}: {link}")
-        # Wait 5 minutes before processing the next link
-        if index < len(links):
-            await asyncio.sleep(300)  # 5 minutes = 300 seconds
+        except Exception as e:
+            await m.reply_text(f"⚠️Error processing link {index}: {str(e)}")
+            continue
 
     await editable.edit(f"<pre><code>**✅All links for {b_name} processed successfully!**</code></pre>")
     # Clear the user's links after processing
     del user_links[user_id]
+
 
 # Keep Running 
 async def keep_alive(db):
