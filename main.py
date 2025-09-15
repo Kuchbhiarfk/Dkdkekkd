@@ -1144,7 +1144,6 @@ async def txt_handler(bot: Client, m: Message):
 
 
 
-
 @bot.on_message(filters.command("op") & filters.private)
 async def op_command(bot: Client, m: Message):
     b_name = m.command[1] if len(m.command) > 1 else "Unknown"
@@ -1162,16 +1161,16 @@ async def text_handler(bot: Client, m: Message):
         await m.reply_text("Please start by using /op {b_name} first.")
         return
 
-    # Extract link and title from message
-    message_text = m.text
-    match = re.search(r'(https?://\S+)', message_text)
+    # Store the entire message text
+    message_text = m.text.strip()
+    # Extract link for confirmation (handle ": " delimiter)
+    match = re.search(r':\s*(https?://\S+)', message_text, re.IGNORECASE)
     if match:
-        link = match.group(0)
-        # Store the entire message (title + URL) to preserve title, quality, chapter_id
+        link = match.group(1)
         user_links[user_id]["links"].append(message_text)
         await m.reply_text(f"Link received: {link}\nSend more links or use /doit to process.")
     else:
-        await m.reply_text("<pre><code>Invalid link format.</code></pre>")
+        await m.reply_text(f"<pre><code>Invalid link format in message: {message_text}</code></pre>")
     await m.delete()
 
 @bot.on_message(filters.command("doit") & filters.private)
@@ -1198,40 +1197,47 @@ async def doit_command(bot: Client, m: Message):
     cptoken = ""  # Replace with actual Classplus token if needed
 
     for index, link_text in enumerate(links, 1):
-        await editable.edit(f"<pre><code>**🔹Processing link {index}/{len(links)}: {link_text.split('🌐')[-1].strip()}...\n🔁Please wait...⏳**</code></pre>")
-        
+        # Log the raw link_text for debugging
+        print(f"Processing link {index}/{len(links)}: {link_text}")
+        await editable.edit(f"<pre><code>**🔹Processing link {index}/{len(links)}: {link_text.split(':')[-1].strip()}...\n🔁Please wait...⏳**</code></pre>")
+
         try:
-            # Extract URL from the message
-            match = re.search(r'(https?://\S+)', link_text)
+            # Extract URL from the message (handle ": " delimiter)
+            match = re.search(r':\s*(https?://\S+)', link_text, re.IGNORECASE)
             if not match:
-                await editable.edit(f"<pre><code>**⚠️Invalid link format for link {index}/{len(links)}. Skipping...**</code></pre>")
+                await editable.edit(f"<pre><code>**⚠️Invalid link format for link {index}/{len(links)}: {link_text}\nSkipping...**</code></pre>")
                 continue
-            url = match.group(0)
+            url = match.group(1)
 
             # Title processing
             title = link_text
-            raw_text97 = ""
-            name1 = ""
-            raw_text65 = ""
+            raw_text97 = ""  # Quality
+            name1 = ""       # Title
+            raw_text65 = ""  # Chapter ID
 
-            if "🌚" in title and "💀" in title:
-                try:
-                    parts = title.split("🌚")
-                    if len(parts) >= 3:
-                        raw_text97 = parts[1].strip()  # Quality
-                        remaining = parts[2].split("💀")
-                        if len(remaining) >= 3:
-                            name1 = remaining[0].strip()  # Title
-                            raw_text65 = remaining[1].strip()  # Chapter ID
-                        else:
-                            name1 = remaining[0].strip() if remaining else title.strip()
-                except IndexError:
-                    name1 = title.strip()
-            else:
-                name1 = title.strip()
+            # Parse format: 🌚Quality🌚Title💀ChapterID💀 : URL
+            try:
+                # Split on 🌚 for quality and the rest
+                parts = title.split("🌚")
+                if len(parts) >= 3:
+                    raw_text97 = parts[1].strip()  # Quality (e.g., 720)
+                    # Split on 💀 for title and chapter ID
+                    remaining = parts[2].split("💀")
+                    if len(remaining) >= 3:
+                        name1 = remaining[0].strip()  # Title (e.g., Revision 01 : Kinematics || NO DPP)
+                        raw_text65 = remaining[1].strip()  # Chapter ID (e.g., KEFJUikgUGh5c2ljcyAtIFJldmlzaW9uIChQaHlzaWNzKQ)
+                    else:
+                        name1 = remaining[0].strip() if remaining else title.split(":")[0].strip()
+                else:
+                    name1 = title.split(":")[0].strip()
+            except IndexError:
+                name1 = title.split(":")[0].strip()
 
             cleaned_name1 = name1.replace("(", "[").replace(")", "]").replace("_", "").replace("\t", "").replace(":", "").replace("/", "").replace("+", "").replace("#", "").replace("|", "").replace("@", "").replace("*", "").replace(".", "").replace("https", "").replace("http", "").strip()
             name = f'[𝗛𝗔𝗖𝗞𝗛𝗘𝗜𝗦𝗧😈]{cleaned_name1[:60]}'
+
+            # Log parsed components for debugging
+            print(f"Parsed - Quality: {raw_text97}, Title: {name1}, ChapterID: {raw_text65}, URL: {url}")
 
             # URL processing
             Vxy = url.replace("file/d/","uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing","")
@@ -1501,20 +1507,21 @@ async def doit_command(bot: Client, m: Message):
                     await asyncio.sleep(1)
 
             except Exception as e:
-                await m.reply_text(f"⚠️𝐃𝐨𝐰𝐧ʟ𝐨𝐚𝐝𝐢𝐧𝐠 𝐈𝐧𝐭𝐞𝐫𝐮𝐩𝐭𝐞𝐝\n\n🔗𝐋𝐢𝐧𝐤 » `{url}`\n\n<blockquote><b><i>⚠️Failed Reason »**__\n{str(e)}</i></b></blockquote>")
+                await m.reply_text(f"⚠️𝐃𝐨𝐰ɴʟ𝐨ᴀ𝐝𝐢𝐧𝐠 𝐈𝐧𝐭𝐞𝐫𝐮𝐩𝐭𝐞𝐝\n\n🔗𝐋𝐢𝐧𝐤 » `{url}`\n\n<blockquote><b><i>⚠️Failed Reason »**__\n{str(e)}</i></b></blockquote>")
 
             # Wait 5 minutes before processing the next link
             if index < len(links):
                 await asyncio.sleep(300)  # 5 minutes = 300 seconds
 
         except Exception as e:
-            await m.reply_text(f"⚠️Error processing link {index}: {str(e)}")
+            await m.reply_text(f"⚠️Error processing link {index}: {str(e)}\nRaw link text: {link_text}")
             continue
 
     await editable.edit(f"<pre><code>**✅All links for {b_name} processed successfully!**</code></pre>")
     # Clear the user's links after processing
-    del user_links[user_id]
+    del user_links[user_id]                                        
 
+                
 
 # Keep Running 
 async def keep_alive(db):
