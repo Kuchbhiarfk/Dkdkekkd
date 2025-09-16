@@ -1463,8 +1463,7 @@ async def text_handler(bot: Client, m: Message):
 
                 url = f"{base_clean}*{signature}"
             
-            elif "studypwurl" in url:
-                
+            elif "studypwurl" in url:                
                 try:
                     resp = requests.get(url)
                     data = resp.json()
