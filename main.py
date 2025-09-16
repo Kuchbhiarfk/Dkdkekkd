@@ -1167,7 +1167,7 @@ async def text_handler(bot: Client, m: Message):
     arg =1
     channel_id = m.chat.id
     try:
-            Vxy = links[1].replace("file/d/", "uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing", "")
+            Vxy = links.replace("file/d/", "uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing", "")
             # URL processing
             if not Vxy.startswith("https://"):
                 url = "https://" + Vxy
@@ -1175,7 +1175,7 @@ async def text_handler(bot: Client, m: Message):
                 url = Vxy
 
             # Title processing
-            title = links[0]
+            title = links
             raw_text97 = ""
             name1 = ""
             raw_text65 = ""
