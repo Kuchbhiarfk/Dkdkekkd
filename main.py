@@ -1290,10 +1290,67 @@ async def text_handler(bot: Client, m: Message):
                 response = requests.get('https://api.classplusapp.com/cams/uploader/video/jw-signed-url', headers=headers, params=params)
                 url   = response.json()['url']
 
-            elif "childId" in url and "parentId" in url:
-                    url = f"https://anonymouspwplayer-0e5a3f512dec.herokuapp.com/pw?url={url}&token={raw_text4}"
-                           
             elif "studystark" in url:
+                try:
+                    response = requests.get(url)
+                    response.raise_for_status()  # Raises an error for bad status codes
+                    data = response.json()
+                    video_url = data.get("video_url", "")
+                    print(f"Original video_url: {video_url}")  # Debugging
+
+                    if video_url:
+                        if video_url.startswith("https://sec"):
+                            # ✅ Logic for sec links
+                            base_path = video_url.split('?')[0].replace('master.mpd', '')
+                            query_params = video_url.split('?')[1] if '?' in video_url else ''
+
+                            # Construct new m3u8 URL
+                            new_url = f"{base_path}hls/{raw_text97}/main.m3u8" + (f"?{query_params}" if query_params else '')
+                            new_url = new_url.replace(
+                                "https://sec-prod-mediacdn.pw.live",
+                                "https://anonymouspwplayer-0e5a3f512dec.herokuapp.com/sec-prod-mediacdn.pw.live"
+                            )
+
+                            # Prepare API request
+                            api_url = "https://api-accesstoken.vercel.app"
+                            headers = {"Content-Type": "application/json"}
+
+                            try:
+                                resp = requests.get(api_url, headers=headers, timeout=10)
+                                if resp.status_code == 200:
+                                    response_data = resp.json()
+                                    if 'access_token' in response_data:
+                                        token = response_data['access_token']
+                                        url = f"{new_url}&token={token}"
+                                        print(f"Generated new_url with API token: {url}")
+                                    else:
+                                        url = f"{new_url}&token={raw_text4}"
+                                        print(f"No access_token in API response, using fallback token: {url}")
+                                else:
+                                    url = f"{new_url}&token={raw_textx}"
+                                    print(f"API request failed ({resp.status_code}), using fallback token: {url}")
+                            except Exception as e:
+                                url = f"{new_url}&token={raw_textx}"
+                                print(f"Error fetching API token ({e}), using fallback token: {url}")
+
+                        elif video_url.startswith("https://next"):
+                            # ✅ Logic for next links
+                            if video_url.endswith("master.mpd"):
+                                url = video_url.replace("master.mpd", f"hls/{raw_text97}/main.m3u8")
+                            else:
+                                base_url = video_url.rsplit("/", 1)[0]  # Remove any trailing segment
+                                url = f"{base_url}/hls/{raw_text97}/main.m3u8"
+                            print(f"Final URL: {url}")
+
+                        else:
+                            print("Unsupported video_url format")
+                            url = ""
+
+                    else:
+                        print("Error: video_url is empty")
+                        url = ""
+               
+            elif "bhosdiwala" in url:
                 try:
                     response = requests.get(url)
                     response.raise_for_status()  # Raises an error for bad status codes
