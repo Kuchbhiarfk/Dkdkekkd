@@ -1146,65 +1146,62 @@ async def txt_handler(bot: Client, m: Message):
 async def text_handler(bot: Client, m: Message):
     if m.from_user.is_bot:
         return
-
-    # Extract the actual URL from the message
     links = m.text
-    match = re.search(r'https?://[^\s]+', links)  # Match only the valid URL
+    path = None
+    match = re.search(r'https?://\S+', links)
     if match:
         link = match.group(0)
     else:
         await m.reply_text("<pre><code>Invalid link format.</code></pre>")
         return
-
+        
     editable = await m.reply_text(f"<pre><code>**🔹Processing your link...\n🔁Please wait...⏳**</code></pre>")
     await m.delete()
-
-    # Extract raw_text97, name1, and raw_text65 from the message
-    title = m.text
-    raw_text97 = ""
-    name1 = ""
-    raw_text65 = ""
-
-    # Check for both delimiters and the correct format
-    if "🌚" in title and "💀" in title:
-        try:
-            # Split on 🌚 to isolate raw_text97 and the rest
-            parts = title.split("🌚")
-            if len(parts) >= 3:
-                raw_text97 = parts[1].strip()  # Extract raw_text97 (e.g., "720")
-                # Split the remaining part on 💀 to get name1 and raw_text65
-                remaining = parts[2].split("💀")
-                if len(remaining) >= 3:
-                    name1 = remaining[0].strip()  # Extract name1 (e.g., "Revision 01 : Kinematics || NO DPP")
-                    raw_text65 = remaining[1].strip()  # Extract raw_text65 (e.g., "KEFJUikgUGh5c2ljcyAtIFJldmlzaW9uIChQaHlzaWNzKQ")
-                else:
-                    name1 = remaining[0].strip() if remaining else title.strip()
-            else:
-                name1 = title[:title.find(link)].strip()  # Fallback: text before the URL
-        except IndexError:
-            name1 = title[:title.find(link)].strip()  # Fallback: text before the URL
-    else:
-        name1 = title[:title.find(link)].strip()  # Fallback: text before the URL
-
-    # Clean the title for display
-    cleaned_name1 = name1.replace("(", "[").replace(")", "]").replace("_", "").replace("\t", "").replace(":", "").replace("/", "").replace("+", "").replace("#", "").replace("|", "").replace("@", "").replace("*", "").replace(".", "").replace("https", "").replace("http", "").strip()
-    name = f'[𝗛𝗔𝗖𝗞𝗛𝗘𝗜𝗦𝗧😈]{cleaned_name1[:60]}'
-
-    # URL processing
-    Vxy = link.replace("file/d/", "uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing", "")
-    if not Vxy.startswith("https://"):
-        url = "https://" + Vxy
-    else:
-        url = Vxy
-
-    # Other variables
+              
     raw_text2 = "720"
-    res = "1280×720" 
+    res = "1280×720"
     raw_text4 = "working_token"
     thumb = "/d"
-    count = 0
-    arg = 1
+    count =0
+    arg =1
     channel_id = m.chat.id
+    try:
+            Vxy = link.replace("file/d/", "uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing", "")
+            # URL processing
+            if not Vxy.startswith("https://"):
+                url = "https://" + Vxy
+            else:
+                url = Vxy
+
+            # Title processing
+            title = links
+            raw_text97 = ""
+            name1 = ""
+            raw_text65 = ""
+
+            # Check for both delimiters and the correct format
+            if "🌚" in title and "💀" in title:
+                try:
+                    # Split on 🌚 to isolate raw_text97 and the rest
+                    parts = title.split("🌚")
+                    if len(parts) >= 3:
+                        raw_text97 = parts[1].strip()  # Extract raw_text97
+                        # Split the remaining part on 💀 to get name1 and raw_text65
+                        remaining = parts[2].split("💀")
+                        if len(remaining) >= 3:
+                            name1 = remaining[0].strip()  # Extract name1
+                            raw_text65 = remaining[1].strip()  # Extract raw_text65
+                        else:
+                            name1 = remaining[0].strip() if remaining else title.strip()
+                except IndexError:
+                    # Fallback in case of malformed title
+                    name1 = title.strip()
+            else:
+                # Fallback if delimiters are missing
+                name1 = title.strip()
+
+            cleaned_name1 = name1.replace("(", "[").replace(")", "]").replace("_", "").replace("\t", "").replace(":", "").replace("/", "").replace("+", "").replace("#", "").replace("|", "").replace("@", "").replace("*", "").replace(".", "").replace("https", "").replace("http", "").strip()
+            name = f'[𝗛𝗔𝗖𝗞𝗛𝗘𝗜𝗦𝗧😈]{cleaned_name1[:60]}'
 
     # Add your further processing logic here
 
