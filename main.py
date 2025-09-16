@@ -825,13 +825,114 @@ async def txt_handler(bot: Client, m: Message):
             elif 'videos.classplusapp' in url:
                 url = requests.get(f'https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={url}', headers={'x-access-token': f'{cptoken}'}).json()['url']
             
-            elif 'media-cdn.classplusapp.com' in url or 'media-cdn-alisg.classplusapp.com' in url or 'media-cdn-a.classplusapp.com' in url: 
-                headers = {'host': 'api.classplusapp.com', 'x-access-token': f'{cptoken}', 'accept-language': 'EN', 'api-version': '18', 'app-version': '1.4.73.2', 'build-number': '35', 'connection': 'Keep-Alive', 'content-type': 'application/json', 'device-details': 'Xiaomi_Redmi 7_SDK-32', 'device-id': 'c28d3cb16bbdac01', 'region': 'IN', 'user-agent': 'Mobile-Android', 'webengage-luid': '00000187-6fe4-5d41-a530-26186858be4c', 'accept-encoding': 'gzip'}
-                params = {"url": f"{url}"}
-                response = requests.get('https://api.classplusapp.com/cams/uploader/video/jw-signed-url', headers=headers, params=params)
-                url   = response.json()['url']
-
             elif "studystark" in url:
+                try:
+                    # Step 1: Fetch data from primary URL
+                    response = requests.get(url)
+                    response.raise_for_status()  # Raises an error for bad status codes
+                    data = response.json()
+                    video_url = data.get("video_url", "")
+                    print(f"Original video_url from primary response: {video_url}")  # Debugging
+
+                    # If video_url is not found, try fallback_api_url
+                    if not video_url:
+                        print("Video URL not found in primary response, checking for fallback API...")
+                        fallback_api_url = data.get('debug_info', {}).get('fallback_api_url', '')
+                        if fallback_api_url:
+                            try:
+                                print(f"Fetching from fallback API: {fallback_api_url}")
+                                fallback_response = requests.get(fallback_api_url)
+                                fallback_response.raise_for_status()
+                                fallback_data = fallback_response.json()
+                                video_url = fallback_data.get('video_url', '')
+                                print(f"Video URL from fallback API: {video_url}")  # Debugging
+                            except requests.RequestException as e:
+                                print(f"Error fetching fallback API: {e}")
+                                video_url = ""
+                        else:
+                            print("Fallback API URL not found in primary response.")
+                            video_url = ""
+
+                    # Process video_url if found
+                    if video_url:
+                        print(f"Processing video_url: {video_url}")  # Debugging
+                        if video_url.startswith("https://sec"):
+                            # ✅ Logic for sec links
+                            print("Detected sec link, processing...")
+                            try:
+                                base_path = video_url.split('?')[0].replace('master.mpd', '')
+                                query_params = video_url.split('?')[1] if '?' in video_url else ''
+                                print(f"Base path: {base_path}, Query params: {query_params}")  # Debugging
+
+                                # Construct new m3u8 URL
+                                new_url = f"{base_path}hls/{raw_text97}/main.m3u8" + (f"?{query_params}" if query_params else '')
+                                new_url = new_url.replace(
+                                    "https://sec-prod-mediacdn.pw.live",
+                                    "https://anonymouspwplayer-0e5a3f512dec.herokuapp.com/sec-prod-mediacdn.pw.live"
+                                )
+                                print(f"Constructed new_url: {new_url}")  # Debugging
+
+                                # Prepare API request for token
+                                api_url = "https://api-accesstoken.vercel.app"
+                                headers = {"Content-Type": "application/json"}
+
+                                try:
+                                    resp = requests.get(api_url, headers=headers, timeout=10)
+                                    print(f"API token response status: {resp.status_code}")  # Debugging
+                                    if resp.status_code == 200:
+                                        response_data = resp.json()
+                                        print(f"API token response data: {response_data}")  # Debugging
+                                        if 'access_token' in response_data:
+                                            token = response_data['access_token']
+                                            url = f"{new_url}&token={token}"
+                                            print(f"Generated new_url with API token: {url}")
+                                        else:
+                                            url = f"{new_url}&token={raw_text4}"
+                                            print(f"No access_token in API response, using fallback token: {url}")
+                                    else:
+                                        url = f"{new_url}&token={raw_textx}"
+                                        print(f"API request failed ({resp.status_code}), using fallback token: {url}")
+                                except Exception as e:
+                                    url = f"{new_url}&token={raw_textx}"
+                                    print(f"Error fetching API token ({e}), using fallback token: {url}")
+
+                            except Exception as e:
+                                print(f"Error processing sec link: {e}")
+                                url = ""
+
+                        elif video_url.startswith("https://next"):
+                            # ✅ Logic for next links
+                            print("Detected next link, processing...")
+                            try:
+                                if video_url.endswith("master.mpd"):
+                                    url = video_url.replace("master.mpd", f"hls/{raw_text97}/main.m3u8")
+                                else:
+                                    base_url = video_url.rsplit("/", 1)[0]  # Remove any trailing segment
+                                    url = f"{base_url}/hls/{raw_text97}/main.m3u8"
+                                print(f"Final URL for next link: {url}")
+                            except Exception as e:
+                                print(f"Error processing next link: {e}")
+                                url = ""
+
+                        else:
+                            print(f"Unsupported video_url format: {video_url}")
+                            url = ""
+
+                    else:
+                        print("Error: video_url is empty after all attempts")
+                        url = ""
+
+                except requests.RequestException as e:
+                    print(f"Error fetching URL: {e}")
+                    url = ""  # Fallback to empty string
+                except ValueError as e:
+                    print(f"Error parsing JSON: {e}")
+                    url = ""  # Fallback to empty string
+                except Exception as e:
+                    print(f"Unexpected error: {e}")
+                    url = ""  # Fallback to empty string
+
+            elif "chosdiwala" in url:
                 try:
                     response = requests.get(url)
                     response.raise_for_status()  # Raises an error for bad status codes
