@@ -853,7 +853,7 @@ async def txt_handler(bot: Client, m: Message):
                         else:
                             print(f"Found fallback_api_url: {fallback_api_url}")
 
-                         if fallback_api_url:
+                        if fallback_api_url:
                             try:
                                 print(f"Fetching from fallback API: {fallback_api_url}")
                                 fallback_response = requests.get(fallback_api_url)
