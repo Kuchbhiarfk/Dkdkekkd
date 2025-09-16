@@ -1462,14 +1462,18 @@ async def text_handler(bot: Client, m: Message):
                     base_clean = base_clean.replace("https://static-trans-v2.classx.co.in", "https://transcoded-videos-v2.classx.co.in")
 
                 url = f"{base_clean}*{signature}"
-            
-            elif "studypwurl" in url:                
-                try:
-                    resp = requests.get(url)
-                    data = resp.json()
-                    if "video_url" in data:
-                        url = data["video_url"]
 
+            elif "studypwurl" in url:
+                try:
+                    resp = requests.get(url)
+                    data = resp.json()
+                    if "video_url" in data:
+                        url = data["video_url"]
+                    else:
+                        print("No url")
+                except Exception as e:
+                    print("Failed To fetch")
+            
             elif "https://studystark" in url:
                 try:
                     # Step 1: Fetch data from primary URL
