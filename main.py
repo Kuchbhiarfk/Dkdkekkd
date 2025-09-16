@@ -1245,12 +1245,45 @@ async def text_handler(bot: Client, m: Message):
 
             elif "https://studystark" in url:
                 try:
+                    # Step 1: Fetch data from primary URL
                     response = requests.get(url)
                     response.raise_for_status()  # Raises an error for bad status codes
                     data = response.json()
                     video_url = data.get("video_url", "")
                     print(f"Original video_url: {video_url}")  # Debugging
 
+                    # Step 2: If video_url is empty, check for fallback_api_url
+                    if not video_url:
+                        print("Video URL not found in primary response, checking for fallback API...")
+                        fallback_api_url = data.get('debug_info', {}).get('fallback_api_url', '')
+                        if not fallback_api_url:
+                            print("Fallback API URL not found in primary response.")
+                            video_url = ""  # Maintain your empty string format
+                        else:
+                            # Step 3: Fetch data from fallback_api_url
+                            print(f"Fetching from fallback API: {fallback_api_url}")
+                            try:
+                                fallback_response = requests.get(fallback_api_url)
+                                fallback_response.raise_for_status()
+                                fallback_data = fallback_response.json()
+                                video_url = fallback_data.get('video_url', '')
+                                print(f"Fallback video_url: {video_url}")  # Debugging
+                            except requests.exceptions.RequestException as e:
+                                print(f"Error fetching fallback API: {e}")
+                                video_url = ""  # Maintain your empty string format
+                            except json.JSONDecodeError as e:
+                                print(f"Error decoding fallback JSON: {e}")
+                                video_url = ""  # Maintain your empty string format
+
+                except requests.exceptions.RequestException as e:
+                    print(f"Error fetching primary URL: {e}")
+                    video_url = ""  # Maintain your empty string format
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding primary JSON: {e}")
+                    video_url = ""  # Maintain your empty string format
+                except Exception as e:
+                    print(f"Unexpected error: {e}")
+                    video_url = ""  # Maintain your empty string format
                     if video_url:
                         if video_url.startswith("https://sec"):
                             # ✅ Logic for sec links
