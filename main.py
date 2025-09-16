@@ -1469,10 +1469,6 @@ async def text_handler(bot: Client, m: Message):
                     data = resp.json()
                     if "video_url" in data:
                         url = data["video_url"]
-                    else:
-                        print("⚠️ No video_url found in studypwurl response")
-                except Exception as e:
-                    print("❌ Failed to fetch studypwurl:", e)
 
             elif "https://studystark" in url:
                 try:
