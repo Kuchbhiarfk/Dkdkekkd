@@ -1463,14 +1463,17 @@ async def text_handler(bot: Client, m: Message):
 
                 url = f"{base_clean}*{signature}"
             
-            elif "https://static-rec.classx.co.in/drm/" in url:
-                base_with_params, signature = url.split("*")
-
-                base_clean = base_with_params.split("?")[0]
-
-                base_clean = base_clean.replace("https://static-rec.classx.co.in", "https://appx-recordings-mcdn.akamai.net.in")
-
-                url = f"{base_clean}*{signature}"
+            elif "studypwurl" in url:
+                
+                try:
+                    resp = requests.get(url)
+                    data = resp.json()
+                    if "video_url" in data:
+                        url = data["video_url"]
+                    else:
+                        print("⚠️ No video_url found in studypwurl response")
+                except Exception as e:
+                    print("❌ Failed to fetch studypwurl:", e)
 
             elif "https://studystark" in url:
                 try:
