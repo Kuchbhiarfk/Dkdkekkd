@@ -774,12 +774,23 @@ async def txt_handler(bot: Client, m: Message):
 
                 url = f"{base_clean}*{signature}"
 
-            elif "https://static-wsb.classx.co.in/" in url:
-                clean_url = url.split("?")[0]
-
-                clean_url = clean_url.replace("https://static-wsb.classx.co.in", "https://appx-wsb-gcp-mcdn.akamai.net.in")
-
-                url = clean_url
+            elif "studypwurl" in url:    
+                video_url = None
+                for attempt in range(5):  # retry up to 5 times
+                    try:
+                        resp = requests.get(url, timeout=10)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            if "video_url" in data:
+                                video_url = data["video_url"]
+                                break  # got it, stop retrying
+                    except Exception as e:
+                        print(f"⚠️ Attempt {attempt+1} failed: {e}")        
+                    time.sleep(2)  # wait before retry
+                if video_url:
+                    url = video_url
+                else:
+                    print("❌ Could not fetch video_url from studypwurl after 5 attempts")
 
             elif "https://static-db.classx.co.in/" in url:
                 if "*" in url:
@@ -1463,16 +1474,23 @@ async def text_handler(bot: Client, m: Message):
 
                 url = f"{base_clean}*{signature}"
 
-            elif "studypwurl" in url:
-                try:
-                    resp = requests.get(url)
-                    data = resp.json()
-                    if "video_url" in data:
-                        url = data["video_url"]
-                    else:
-                        print("No url")
-                except Exception as e:
-                    print("Failed To fetch")
+            elif "studypwurl" in url:    
+                video_url = None
+                for attempt in range(5):  # retry up to 5 times
+                    try:
+                        resp = requests.get(url, timeout=10)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            if "video_url" in data:
+                                video_url = data["video_url"]
+                                break  # got it, stop retrying
+                    except Exception as e:
+                        print(f"⚠️ Attempt {attempt+1} failed: {e}")        
+                    time.sleep(2)  # wait before retry
+                if video_url:
+                    url = video_url
+                else:
+                    print("❌ Could not fetch video_url from studypwurl after 5 attempts")
             
             elif "https://studystark" in url:
                 try:
